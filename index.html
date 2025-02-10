@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nosrix</title>
+  <style>
+    body {
+      font-family: 'Roboto Mono', monospace;
+      background-color: #282828;
+      color: #d3869b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 1.2rem;
+      margin-top: 0;
+      margin-bottom: 30px;
+      text-align: center;
+      width: 100%;
+      max-width: 500px;
+      word-wrap: break-word;
+    }
+
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .input-container input {
+      padding: 12px;
+      font-size: 1.2rem;
+      width: 100%;
+      border-radius: 25px;
+      border: 2px solid #d3869b;
+      background-color: #3c3836;
+      color: #d3869b;
+      box-sizing: border-box;
+    }
+
+    .input-container button {
+      padding: 12px;
+      font-size: 1.2rem;
+      width: 100%;
+      border-radius: 25px;
+      border: none;
+      background-color: #fabd2f;
+      color: #282828;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .input-container button:hover {
+      background-color: #e0a42e;
+    }
+
+    .footer {
+      margin-top: 30px;
+      font-size: 0.9rem;
+      color: #fabd2f;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>nosrix</h1>
+  <p>A website for viewing Nostr notes, profiles, etc. and sending some SATS to users</p>
+  <div class="input-container">
+    <input type="text" id="inputCode" placeholder="Enter noteid or npub" />
+    <button id="submitBtn">Go</button>
+  </div>
+
+  <script>
+    const submitBtn = document.getElementById('submitBtn');
+    const inputCode = document.getElementById('inputCode');
+
+    submitBtn.addEventListener('click', () => {
+      const inputValue = inputCode.value.trim();
+
+      if (!inputValue) {
+        alert('Please enter a noteid or npub!');
+        return;
+      }
+
+      if (inputValue.startsWith('note')) {
+        window.location.href = `https://nosrix.com/note/#${inputValue}`;
+      } else if (inputValue.startsWith('npub')) {
+        window.location.href = `https://nosrix.com/profile/#${inputValue}`;
+      } else {
+        alert('Invalid input. Please enter a valid noteid or npub.');
+      }
+    });
+
+    inputCode.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
