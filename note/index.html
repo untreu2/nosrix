@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nosrix/note</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: 'Roboto Mono', monospace;
+      background-color: #282828;
+      color: #d3869b;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .card {
+      max-width: 600px;
+      width: 100%;
+      background: #3c3836;
+      border: 2px solid #d3869b;
+      border-radius: 10px;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .profile-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+    .profile-info {
+      display: flex;
+      align-items: center;
+    }
+    .profile-card img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 15px;
+      border: 2px solid #d3869b;
+    }
+    .profile-details {
+      display: flex;
+      flex-direction: column;
+    }
+    .profile-details .name {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .profile-details .extras {
+      font-size: 0.9rem;
+      margin-top: 3px;
+      color: #fabd2f;
+      white-space: pre-wrap;
+    }
+    .note-content {
+      margin-top: 15px;
+      font-size: 1.1rem;
+      white-space: pre-wrap;
+    }
+    .media-preview {
+      margin-top: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .media-preview img,
+    .media-preview video {
+      width: 100%;
+      height: auto;
+      border: 2px solid #d3869b;
+      border-radius: 10px;
+    }
+    .lightning-icon {
+      cursor: pointer;
+      transition: transform 0.2s;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+    }
+    .lightning-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+    .lightning-icon:hover {
+      transform: scale(1.1);
+    }
+    #dialogOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 900;
+      display: none;
+    }
+    #invoiceDialog {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #3c3836;
+      border: 2px solid #d3869b;
+      border-radius: 16px;
+      padding: 20px;
+      z-index: 1000;
+      width: 90%;
+      max-width: 400px;
+      color: #f5f5f5;
+      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.5);
+      display: none;
+      text-align: center;
+    }
+    #invoiceDialog h3 {
+      margin-top: 0;
+      font-size: 1.4rem;
+      text-align: center;
+      border-bottom: 1px solid #444;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    #invoiceDialog input[type="number"] {
+      width: 60%;
+      padding: 10px;
+      margin: 0 auto 15px auto;
+      display: block;
+      border: none;
+      border-radius: 4px;
+      background: #333;
+      color: #f5f5f5;
+      font-size: 1rem;
+      text-align: center;
+    }
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    #invoiceDialog button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      background: #d3869b;
+      color: #202020;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    #invoiceDialog button:hover {
+      background: #c37587;
+    }
+    #invoiceDialog .btn-secondary {
+      background: #fabd2f;
+      color: #202020;
+    }
+    #invoiceDialog .btn-secondary:hover {
+      background: #e0a42e;
+    }
+    #copyInvoiceBtn {
+      margin: 10px auto;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      background: #d3869b;
+      color: #202020;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+      display: block;
+    }
+    #copyInvoiceBtn:hover {
+      background: #c37587;
+    }
+    #invoiceDialog .qr-code {
+      margin-top: 15px;
+      display: flex;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="dialogOverlay"></div>
+  <div id="invoiceDialog">
+    <h3 id="dialogHeading">Send some SATS to @name</h3>
+    <input type="number" id="amountInput" placeholder="Enter amount" min="1">
+    <div class="btn-group">
+      <button id="createInvoiceBtn">Create Invoice</button>
+      <button id="closeDialogBtn" class="btn-secondary">Close</button>
+    </div>
+    <div id="invoiceResult">
+      <button id="copyInvoiceBtn">Copy Invoice</button>
+      <div class="qr-code" id="qrCodeContainer"></div>
+    </div>
+  </div>
+  <div class="card" id="card">
+    <div class="profile-card" id="profileCard" style="display: none;">
+      <div class="profile-info">
+        <img id="profileImage" src="" alt="Profile Image" />
+        <div class="profile-details">
+          <div class="name" id="profileName"></div>
+          <div class="extras" id="profileExtras"></div>
+        </div>
+      </div>
+      <div class="lightning-icon" id="lightningIcon" title="Lightning Payment">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fabd2f">
+          <path d="M13 2L3 14h7v8l10-12h-7z"/>
+        </svg>
+      </div>
+    </div>
+    <div class="note-content" id="noteContent">Loading note...</div>
+    <div class="media-preview" id="mediaPreview"></div>
+  </div>
+  <script type="module">
+    import * as nostrTools from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.1.0/+esm';
+    const { nip19, Relay } = nostrTools;
+    const relays = [
+      'wss://strfry.iris.to',
+      'wss://relay.damus.io',
+      'wss://relay.nostr.band',
+      'wss://relay.snort.social',
+      'wss://vitor.nostr1.com',
+      'wss://nos.lol',
+      'wss://untreu.me'
+    ];
+    async function connectWithTimeout(relayUrl, timeout = 800) {
+      return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error(`Timed out connecting to relay: ${relayUrl}`));
+        }, timeout);
+        Relay.connect(relayUrl)
+          .then(relay => {
+            clearTimeout(timeoutId);
+            resolve(relay);
+          })
+          .catch(err => {
+            clearTimeout(timeoutId);
+            reject(err);
+          });
+      });
+    }
+    async function fetchNote(noteHex) {
+      const promises = relays.map(async relayUrl => {
+        try {
+          const relay = await connectWithTimeout(relayUrl, 800);
+          const noteEvent = await new Promise((resolve) => {
+            const sub = relay.subscribe([{ ids: [noteHex] }], {
+              onevent(event) {
+                resolve(event);
+                sub.close();
+              },
+              oneose() {
+                resolve(null);
+              }
+            });
+            setTimeout(() => {
+              sub.close();
+              resolve(null);
+            }, 1500);
+          });
+          relay.close();
+          return noteEvent;
+        } catch (error) {
+          console.error(`Relay ${relayUrl} error:`, error);
+          return null;
+        }
+      });
+      const results = await Promise.all(promises);
+      return results.find(event => event !== null);
+    }
+    async function getProfile(pubkey) {
+      const promises = relays.map(async relayUrl => {
+        try {
+          const relay = await connectWithTimeout(relayUrl, 800);
+          const profileEvent = await new Promise((resolve) => {
+            const sub = relay.subscribe([{ kinds: [0], authors: [pubkey] }], {
+              onevent(event) {
+                resolve(event);
+                sub.close();
+              },
+              oneose() {
+                resolve(null);
+              }
+            });
+            setTimeout(() => {
+              sub.close();
+              resolve(null);
+            }, 1500);
+          });
+          relay.close();
+          return profileEvent;
+        } catch (error) {
+          console.error(`Profile query error at ${relayUrl}:`, error);
+          return null;
+        }
+      });
+      const results = await Promise.all(promises);
+      return results.find(event => event !== null);
+    }
+    function extractUrls(text) {
+      const urlRegex = /https?:\/\/[^\s]+/g;
+      return text.match(urlRegex) || [];
+    }
+    function isImageUrl(url) {
+      return /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url);
+    }
+    function isVideoUrl(url) {
+      return /\.(mp4|mov|webm)(\?.*)?$/i.test(url);
+    }
+    function formatNoteContent(text) {
+      const lines = text.split('\n');
+      const processedLines = lines.map(line => {
+        const newLine = line.replace(/https?:\/\/[^\s]+/g, (match) => {
+          if (isImageUrl(match) || isVideoUrl(match)) {
+            return '';
+          }
+          return `<a style="font-weight:bold; color:white;" href="${match}" target="_blank" rel="noopener noreferrer">${match}</a>`;
+        }).trim();
+        return newLine;
+      }).filter(line => line !== '');
+      return processedLines.join('\n');
+    }
+    async function generateLightningInvoice(amount, lud16) {
+      const msat = amount * 1000;
+      const parts = lud16.split('@');
+      if (parts.length !== 2) {
+        throw new Error("Invalid lud16 address");
+      }
+      const [user, domain] = parts;
+      const lnurlp = `https://${domain}/.well-known/lnurlp/${user}`;
+      const lnurlRes = await fetch(lnurlp);
+      if (!lnurlRes.ok) {
+        throw new Error(`Could not fetch LNURL-pay info: ${lnurlRes.status}`);
+      }
+      const lnurlData = await lnurlRes.json();
+      if (msat < lnurlData.minSendable || msat > lnurlData.maxSendable) {
+        throw new Error(`Amount out of range. Minimum ${lnurlData.minSendable / 1000} and maximum ${lnurlData.maxSendable / 1000} satoshis allowed.`);
+      }
+      const callbackUrl = new URL(lnurlData.callback);
+      callbackUrl.searchParams.append("amount", msat.toString());
+      const invoiceRes = await fetch(callbackUrl.toString());
+      if (!invoiceRes.ok) {
+        throw new Error(`Failed to fetch invoice: ${invoiceRes.status}`);
+      }
+      const invoiceData = await invoiceRes.json();
+      if (invoiceData.status && invoiceData.status.toLowerCase() === "error") {
+        throw new Error(`Invoice error: ${invoiceData.reason}`);
+      }
+      return invoiceData.pr;
+    }
+    let invoiceStr = "";
+    const invoiceDialog = document.getElementById("invoiceDialog");
+    const dialogOverlay = document.getElementById("dialogOverlay");
+    const amountInput = document.getElementById("amountInput");
+    const createInvoiceBtn = document.getElementById("createInvoiceBtn");
+    const closeDialogBtn = document.getElementById("closeDialogBtn");
+    const qrCodeContainer = document.getElementById("qrCodeContainer");
+    const dialogHeading = document.getElementById("dialogHeading");
+    const copyInvoiceBtn = document.getElementById("copyInvoiceBtn");
+    function openDialog() {
+      dialogOverlay.style.display = "block";
+      invoiceDialog.style.display = "block";
+      document.getElementById("invoiceResult").style.display = "none";
+      qrCodeContainer.innerHTML = "";
+      amountInput.value = "21";
+    }
+    function closeDialog() {
+      dialogOverlay.style.display = "none";
+      invoiceDialog.style.display = "none";
+    }
+    dialogOverlay.addEventListener("click", closeDialog);
+    closeDialogBtn.addEventListener("click", closeDialog);
+    const lightningIcon = document.getElementById('lightningIcon');
+    lightningIcon.addEventListener('click', openDialog);
+    createInvoiceBtn.addEventListener("click", async () => {
+      const amount = parseInt(amountInput.value);
+      if (isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid amount.");
+        return;
+      }
+      createInvoiceBtn.disabled = true;
+      createInvoiceBtn.textContent = "Creating invoice...";
+      try {
+        const lud16 = window.profileLud16;
+        if (!lud16) {
+          throw new Error("Lightning address not found.");
+        }
+        invoiceStr = await generateLightningInvoice(amount, lud16);
+        document.getElementById("invoiceResult").style.display = "block";
+        qrCodeContainer.innerHTML = "";
+        new QRCode(qrCodeContainer, {
+          text: invoiceStr,
+          width: 300,
+          height: 300,
+          colorDark : "#000000",
+          colorLight : "#ffffff",
+          correctLevel : QRCode.CorrectLevel.H
+        });
+      } catch (err) {
+        alert("Failed to create invoice: " + err.message);
+      } finally {
+        createInvoiceBtn.disabled = false;
+        createInvoiceBtn.textContent = "Create Invoice";
+      }
+    });
+    copyInvoiceBtn.addEventListener("click", async () => {
+      if (!invoiceStr) {
+        alert("There is no invoice to copy!");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(invoiceStr);
+        alert("Invoice copied to clipboard!");
+      } catch (err) {
+        alert("Failed to copy invoice: " + err.message);
+      }
+    });
+    window.addEventListener('DOMContentLoaded', async () => {
+      const hash = window.location.hash.slice(1).trim();
+      if (!hash) {
+        document.getElementById('noteContent').innerText = "Please add a nip19 note code to the URL.";
+        return;
+      }
+      let decoded;
+      try {
+        decoded = nip19.decode(hash);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('noteContent').innerText = "Invalid nip19 note code.";
+        return;
+      }
+      if (decoded.type !== 'note') {
+        document.getElementById('noteContent').innerText = "A nip19 note is expected.";
+        return;
+      }
+      const noteHex = decoded.data;
+      console.log("Decoded note hex:", noteHex);
+      const noteEvent = await fetchNote(noteHex);
+      if (!noteEvent) {
+        document.getElementById('noteContent').innerText = "Note not found or could not be retrieved from relays.";
+        return;
+      }
+      const formattedContent = formatNoteContent(noteEvent.content);
+      const mediaFragment = document.createDocumentFragment();
+      const urls = extractUrls(noteEvent.content);
+      urls.forEach(url => {
+        if (isImageUrl(url)) {
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = "Media Preview";
+          mediaFragment.appendChild(img);
+        } else if (isVideoUrl(url)) {
+          const video = document.createElement('video');
+          video.src = url;
+          video.controls = true;
+          mediaFragment.appendChild(video);
+        }
+      });
+      const profilePromise = getProfile(noteEvent.pubkey);
+      const profileEvent = await profilePromise;
+      const noteContentElem = document.getElementById('noteContent');
+      noteContentElem.innerHTML = formattedContent;
+      const mediaPreviewDiv = document.getElementById('mediaPreview');
+      mediaPreviewDiv.appendChild(mediaFragment);
+      if (profileEvent) {
+        let profileData;
+        try {
+          profileData = JSON.parse(profileEvent.content);
+        } catch (e) {
+          console.error("Profile JSON parse error:", e);
+        }
+        if (profileData) {
+          const profileCard = document.getElementById('profileCard');
+          const profileNameElem = document.getElementById('profileName');
+          const profileExtrasElem = document.getElementById('profileExtras');
+          const profileImageElem = document.getElementById('profileImage');
+          profileNameElem.innerText = profileData.name || noteEvent.pubkey;
+          let extras = "";
+          if (profileData.nip05) {
+            extras += profileData.nip05 + "\n";
+          }
+          if (profileData.lud16) {
+            extras += profileData.lud16;
+            window.profileLud16 = profileData.lud16;
+          }
+          profileExtrasElem.innerText = extras.trim();
+          profileImageElem.src = profileData.picture || 'https://via.placeholder.com/60?text=No+Image';
+          profileCard.style.display = "flex";
+          dialogHeading.innerText = `Send some SATS to @${profileData.name || 'name'}`;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
